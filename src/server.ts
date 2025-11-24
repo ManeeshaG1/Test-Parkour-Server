@@ -6,7 +6,7 @@ import { monitor } from "@colyseus/monitor";
 import { ParkourRoom } from "./rooms/ParkourRoom";
 
 // Get port from Railway environment
-const port = Number(process.env.PORT || 2567);
+const port = Number(process.env.PORT);
 
 // Create Express app
 const app = express();
