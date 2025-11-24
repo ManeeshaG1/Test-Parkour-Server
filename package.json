@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Colyseus multiplayer parkour game server",
   "main": "lib/server.js",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
   "scripts": {
     "start": "node lib/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
