@@ -6,7 +6,7 @@ import cors from "cors";
 import { monitor } from "@colyseus/monitor";
 import { ParkourRoom } from "./rooms/ParkourRoom";
 
-const port = Number(process.env.PORT) || 8080;
+const port = Number(process.env.PORT || 8080);
 
 const app = express();
 app.use(cors());

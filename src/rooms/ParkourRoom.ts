@@ -159,8 +159,8 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   }
 
   private checkAllPlayersReady() {
-    const minPlayers = 2;
-    if (this.state.players.size < 1) {
+    const minPlayers = 4;
+    if (this.state.players.size < minPlayers) {
       console.log(
         `Waiting for more players: ${this.state.players.size}/${minPlayers}`
       );
