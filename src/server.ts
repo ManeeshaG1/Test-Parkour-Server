@@ -25,7 +25,7 @@ const gameServer = new Server({
 });
 
 // Register parkour room
-gameServer.define("parkour_room", ParkourRoom).filterBy(["roomId"]);
+gameServer.define("parkour_room", ParkourRoom);
 
 // Colyseus monitor (optional, works only locally)
 app.use("/colyseus", monitor());
