@@ -1,4 +1,5 @@
 import { Server } from "colyseus";
+import { WebSocketTransport } from "@colyseus/ws-transport";
 import { createServer } from "http";
 import express from "express";
 import cors from "cors";
@@ -6,7 +7,7 @@ import { monitor } from "@colyseus/monitor";
 import { ParkourRoom } from "./rooms/ParkourRoom";
 
 // Get port from Railway environment
-const port = Number(process.env.PORT);
+const port = Number(process.env.PORT) || 8080;
 
 // Create Express app
 const app = express();
@@ -16,18 +17,25 @@ app.use(express.json());
 // Health check
 app.get("/", (req, res) => res.send("Parkour Server is running! 🎮"));
 
-// Create a single HTTP server for both Express and Colyseus
+// Create HTTP server
 const httpServer = createServer(app);
 
-// Create Colyseus server using that HTTP server
-const gameServer = new Server({
+// Create WebSocketTransport
+const transport = new WebSocketTransport({
   server: httpServer,
+  pingInterval: 10000,
+  pingMaxRetries: 5,
+});
+
+// Create Colyseus server
+const gameServer = new Server({
+  transport,
 });
 
 // Register parkour room
 gameServer.define("parkour_room", ParkourRoom);
 
-// Colyseus monitor (optional, works only locally)
+// Colyseus monitor (optional)
 app.use("/colyseus", monitor());
 
 // Start server
