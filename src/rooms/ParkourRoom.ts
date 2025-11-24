@@ -230,20 +230,6 @@ export class ParkourRoom extends Room<ParkourRoomState> {
         winner = player;
       }
     });
-
-    this.broadcast("gameEnded", {
-      winner: winner ? winner.name : "No winner",
-      highestScore: highestScore,
-    });
-
-    console.log("GAME ENDED!");
-    if (winner)
-      console.log(`Winner: ${winner.name} with ${highestScore} points`);
-
-    this.state.players.forEach((player: Player) => {
-      player.isReady = false;
-      player.score = 0;
-    });
   }
 
   private generateRoomId(): string {
