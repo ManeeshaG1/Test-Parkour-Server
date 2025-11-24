@@ -94,7 +94,24 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   }
 
   onJoin(client: Client, options: any) {
-    const playerName = options.playerName || `Player${this.clients.length}`;
+    console.log(`Client ${client.sessionId} joining room...`);
+    console.log("Options received from client:", options);
+
+    // Check if playerName exists and is valid
+    let playerName: string;
+    if (
+      options &&
+      typeof options.playerName === "string" &&
+      options.playerName.length > 0
+    ) {
+      playerName = options.playerName;
+    } else {
+      playerName = `Player${this.clients.length}`;
+      console.warn(
+        `Client ${client.sessionId} did not provide a valid playerName. Using default: ${playerName}`
+      );
+    }
+
     console.log(`${playerName} joined! Session: ${client.sessionId}`);
 
     const player = new Player();
