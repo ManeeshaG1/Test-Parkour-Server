@@ -1,34 +1,24 @@
 import { Room, Client } from "colyseus";
 import { Schema, type, MapSchema } from "@colyseus/schema";
 
-// ============================
-// Player Schema
-// ============================
 export class Player extends Schema {
   @type("number") x: number = 0;
   @type("number") y: number = 1;
   @type("number") z: number = 0;
-
   @type("number") rotX: number = 0;
   @type("number") rotY: number = 0;
   @type("number") rotZ: number = 0;
   @type("number") rotW: number = 1;
-
   @type("number") velocityX: number = 0;
   @type("number") velocityY: number = 0;
   @type("number") velocityZ: number = 0;
-
   @type("string") currentAnimation: string = "Idle";
   @type("boolean") isGrounded: boolean = true;
-
   @type("string") name: string = "";
   @type("number") score: number = 0;
   @type("boolean") isReady: boolean = false;
 }
 
-// ============================
-// Room State
-// ============================
 export class ParkourRoomState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
   @type("string") roomId: string = "";
@@ -37,16 +27,15 @@ export class ParkourRoomState extends Schema {
   @type("number") roundTime: number = 0;
 }
 
-// ============================
+// -------------------------
 // ParkourRoom
-// ============================
+// -------------------------
 export class ParkourRoom extends Room<ParkourRoomState> {
   maxClients = 4;
   private gameTimer: any = null;
 
   onCreate(options: any) {
     console.log("ParkourRoom created");
-
     this.setState(new ParkourRoomState());
 
     if (options.create) {
@@ -55,50 +44,43 @@ export class ParkourRoom extends Room<ParkourRoomState> {
       console.log("Room Code:", this.state.roomId);
     }
 
-    // ======================
-    // Player Movement
-    // ======================
+    // -------------------------
+    // Player movement updates
+    // -------------------------
     this.onMessage("playerMove", (client, message) => {
-      const player = this.state.players.get(client.sessionId);
+      const player = this.state.players.get(client.sessionId) as Player;
       if (!player) return;
 
       player.x = message.x;
       player.y = message.y;
       player.z = message.z;
-
       player.rotX = message.rotX;
       player.rotY = message.rotY;
       player.rotZ = message.rotZ;
       player.rotW = message.rotW;
-
       player.velocityX = message.velocityX ?? 0;
       player.velocityY = message.velocityY ?? 0;
       player.velocityZ = message.velocityZ ?? 0;
-
       player.currentAnimation = message.currentAnimation ?? "Idle";
       player.isGrounded = message.isGrounded ?? true;
     });
 
-    // ======================
-    // Ready Toggle
-    // ======================
+    // -------------------------
+    // Ready toggle
+    // -------------------------
     this.onMessage("toggleReady", (client) => {
-      const player = this.state.players.get(client.sessionId);
+      const player = this.state.players.get(client.sessionId) as Player;
       if (!player) return;
 
       player.isReady = !player.isReady;
       console.log(
         `${player.name} is ${player.isReady ? "READY" : "NOT READY"}`
       );
-
       this.checkAllPlayersReady();
     });
 
-    // ======================
-    // Score Update
-    // ======================
     this.onMessage("updateScore", (client, message) => {
-      const player = this.state.players.get(client.sessionId);
+      const player = this.state.players.get(client.sessionId) as Player;
       if (!player) return;
 
       player.score = message.score;
@@ -113,19 +95,30 @@ export class ParkourRoom extends Room<ParkourRoomState> {
 
   onJoin(client: Client, options: any) {
     const playerName = options.playerName || `Player${this.clients.length}`;
-
     console.log(`${playerName} joined! Session: ${client.sessionId}`);
 
     const player = new Player();
     player.name = playerName;
+    player.isReady = false;
+
+    // Initial spawn
+    player.x = 0;
+    player.y = 1;
+    player.z = 0;
 
     this.state.players.set(client.sessionId, player);
 
+    // Send room info to client
     client.send("roomInfo", {
       roomId: this.state.roomId,
       playerCount: this.state.players.size,
     });
 
+    console.log(
+      `Players in room: ${this.state.players.size}/${this.maxClients}`
+    );
+
+    // Send waiting status to all clients
     this.broadcast("lobbyUpdate", {
       playerCount: this.state.players.size,
       maxPlayers: this.maxClients,
@@ -136,13 +129,15 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     });
   }
 
-  onLeave(client: Client) {
-    const player = this.state.players.get(client.sessionId);
+  onLeave(client: Client, consented: boolean) {
+    const player = this.state.players.get(client.sessionId) as
+      | Player
+      | undefined;
     const playerName = player ? player.name : client.sessionId;
 
     console.log(`${playerName} left`);
-
     this.state.players.delete(client.sessionId);
+    console.log(`Players remaining: ${this.state.players.size}`);
 
     if (this.state.players.size > 0 && !this.state.gameStarted) {
       this.checkAllPlayersReady();
@@ -155,7 +150,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   }
 
   onDispose() {
-    console.log(`Room ${this.roomId} disposing...`);
+    console.log("Room", this.roomId, "disposing");
 
     if (this.gameTimer) {
       this.gameTimer.clear();
@@ -163,47 +158,61 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     }
   }
 
-  // ============================
-  // Ready Check
-  // ============================
   private checkAllPlayersReady() {
-    if (this.state.players.size < 4) return;
+    const minPlayers = 4;
+    if (this.state.players.size < minPlayers) {
+      console.log(
+        `Waiting for more players: ${this.state.players.size}/${minPlayers}`
+      );
+      return;
+    }
+
     if (this.state.gameStarted) return;
 
-    const allReady = [...this.state.players.values()].every((p) => p.isReady);
+    let allReady = true;
+    let readyCount = 0;
+
+    this.state.players.forEach((player: Player) => {
+      if (player.isReady) readyCount++;
+      else allReady = false;
+    });
+
+    console.log(`Ready Status: ${readyCount}/${this.state.players.size}`);
 
     if (allReady) {
-      console.log("All players ready, starting game in 2 seconds...");
-      this.clock.setTimeout(() => this.startGame(), 2000);
+      console.log(
+        `All ${this.state.players.size} players ready! Starting game in 2 seconds...`
+      );
+
+      this.clock.setTimeout(() => {
+        this.startGame();
+      }, 2000);
     }
   }
 
-  // ============================
-  // Start Game
-  // ============================
   private startGame() {
     if (this.state.gameStarted) return;
 
     this.state.gameStarted = true;
-    this.state.roundTime = 180;
+    this.state.roundTime = 180; // 3 minutes
 
     this.broadcast("gameStarted", {
       message: "Game has started!",
       roundTime: this.state.roundTime,
     });
 
+    console.log("GAME STARTED! Round Time:", this.state.roundTime, "seconds");
+
     this.gameTimer = this.clock.setInterval(() => {
       if (this.state.roundTime > 0) {
         this.state.roundTime -= 1;
 
         if (this.state.roundTime === 60)
-          this.broadcast("timeWarning", { message: "1 minute left!" });
-
+          this.broadcast("timeWarning", { message: "1 minute remaining!" });
         if (this.state.roundTime === 30)
-          this.broadcast("timeWarning", { message: "30 seconds left!" });
-
+          this.broadcast("timeWarning", { message: "30 seconds remaining!" });
         if (this.state.roundTime === 10)
-          this.broadcast("timeWarning", { message: "10 seconds left!" });
+          this.broadcast("timeWarning", { message: "10 seconds remaining!" });
       } else {
         this.broadcast("timeUp", { message: "Time's up!" });
         this.endGame();
@@ -211,9 +220,6 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     }, 1000);
   }
 
-  // ============================
-  // End Game
-  // ============================
   private endGame() {
     if (!this.state.gameStarted) return;
 
@@ -223,11 +229,18 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     }
 
     this.state.gameStarted = false;
+
+    let winner: Player | null = null;
+    let highestScore = -1;
+
+    this.state.players.forEach((player: Player) => {
+      if (player.score > highestScore) {
+        highestScore = player.score;
+        winner = player;
+      }
+    });
   }
 
-  // ============================
-  // Room ID Generator
-  // ============================
   private generateRoomId(): string {
     const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let code = "";
@@ -237,8 +250,3 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     return code;
   }
 }
-
-// =================================
-// 🔥 FINAL EXPORT FIX
-// =================================
-export { Player, ParkourRoomState, ParkourRoom };
