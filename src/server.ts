@@ -16,13 +16,11 @@ app.use(express.json());
 // Create Colyseus server
 const gameServer = new Server({
   server: createServer(app),
-  express: app,
 });
 
 // Register the parkour room
 // filterBy allows multiple rooms with same name but different IDs
-gameServer.define("parkour_room", ParkourRoom)
-  .filterBy(['roomId']);
+gameServer.define("parkour_room", ParkourRoom).filterBy(["roomId"]);
 
 // Monitor panel - view at http://localhost:2567/colyseus
 app.use("/colyseus", monitor());
