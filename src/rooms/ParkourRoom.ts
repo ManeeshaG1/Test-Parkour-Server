@@ -146,25 +146,25 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     });
   }
 
-  onLeave(client: Client, consented: boolean) {
-    const player = this.state.players.get(client.sessionId) as
-      | Player
-      | undefined;
-    const playerName = player ? player.name : client.sessionId;
+  // onLeave(client: Client, consented: boolean) {
+  //   const player = this.state.players.get(client.sessionId) as
+  //     | Player
+  //     | undefined;
+  //   const playerName = player ? player.name : client.sessionId;
 
-    console.log(`${playerName} left`);
-    this.state.players.delete(client.sessionId);
-    console.log(`Players remaining: ${this.state.players.size}`);
+  //   console.log(`${playerName} left`);
+  //   this.state.players.delete(client.sessionId);
+  //   console.log(`Players remaining: ${this.state.players.size}`);
 
-    if (this.state.players.size > 0 && !this.state.gameStarted) {
-      this.checkAllPlayersReady();
-    }
+  //   if (this.state.players.size > 0 && !this.state.gameStarted) {
+  //     this.checkAllPlayersReady();
+  //   }
 
-    if (this.state.players.size === 0 && this.state.gameStarted) {
-      console.log("No players left, ending game");
-      this.endGame();
-    }
-  }
+  //   if (this.state.players.size === 0 && this.state.gameStarted) {
+  //     console.log("No players left, ending game");
+  //     this.endGame();
+  //   }
+  // }
 
   onDispose() {
     console.log("Room", this.roomId, "disposing");
