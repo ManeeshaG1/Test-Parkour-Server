@@ -1,4 +1,5 @@
 import { Server } from "@colyseus/core";
+import { WebSocketTransport } from "@colyseus/ws-transport";
 import { createServer } from "http";
 import express from "express";
 import cors from "cors";
@@ -23,9 +24,11 @@ app.get("/", (req, res) => {
 const httpServer = createServer(app);
 
 const gameServer = new Server({
-  server: httpServer,
-  pingInterval: 6000,
-  pingMaxRetries: 4,
+  transport: new WebSocketTransport({
+    server: httpServer, 
+    pingInterval: 6000,
+    pingMaxRetries: 4,
+  }),
 });
 
 gameServer.define("parkour_room", ParkourRoom);
