@@ -1,5 +1,4 @@
-import { Server } from "colyseus";
-import { WebSocketTransport } from "@colyseus/ws-transport";
+import { Server } from "@colyseus/core";
 import { createServer } from "http";
 import express from "express";
 import cors from "cors";
@@ -23,19 +22,17 @@ app.get("/", (req, res) => {
 
 const httpServer = createServer(app);
 
+// ✅ Colyseus 0.16 default transport (WebSocket) is used automatically
 const gameServer = new Server({
-  transport: new WebSocketTransport({
-    server: httpServer,
-    pingInterval: 6000,
-    pingMaxRetries: 4,
-  }),
+  server: httpServer,
+  pingInterval: 6000,
+  pingMaxRetries: 4,
 });
 
 gameServer.define("parkour_room", ParkourRoom);
 
 app.use("/colyseus", monitor());
 
-// Listen on all network interfaces for Railway
 httpServer.listen(port, "0.0.0.0", () => {
   console.log("=================================");
   console.log(`🚀 Server listening on port ${port}`);
