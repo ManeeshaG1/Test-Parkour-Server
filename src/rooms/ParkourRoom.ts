@@ -112,7 +112,6 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     console.log("📦 Options received:", JSON.stringify(options));
 
     try {
-      // Check if playerName exists and is valid
       let playerName: string;
       if (
         options &&
@@ -138,7 +137,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
 
       this.state.players.set(client.sessionId, player);
 
-      // Send room info after a small delay to ensure state is synchronized
+      // Send room info after delay
       this.clock.setTimeout(() => {
         try {
           client.send("roomInfo", {
@@ -155,7 +154,6 @@ export class ParkourRoom extends Room<ParkourRoomState> {
         `👥 Players in room: ${this.state.players.size}/${this.maxClients}`
       );
 
-      // Broadcast lobby update
       this.broadcast("lobbyUpdate", {
         playerCount: this.state.players.size,
         maxPlayers: this.maxClients,
