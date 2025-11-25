@@ -38,7 +38,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     console.log("ParkourRoom created");
     this.setState(new ParkourRoomState());
 
-    if (options.create) {
+    if (options.create !== false) {
       this.state.roomId = this.generateRoomId();
       this.roomId = this.state.roomId;
       console.log("Room Code:", this.state.roomId);
@@ -94,52 +94,56 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   }
 
 onJoin(client: Client, options: any) {
-    console.log(`Client ${client.sessionId} joining room...`);
-    console.log("Options received from client:", options);
+  console.log(`Client ${client.sessionId} joining room...`);
+  console.log("Options received from client:", options);
 
-    // Check if playerName exists and is valid
-    let playerName: string;
-    if (options && typeof options.playerName === "string" && options.playerName.length > 0) {
-        playerName = options.playerName;
-    } else {
-        playerName = `Player${this.clients.length}`;
-        console.warn(
-            `Client ${client.sessionId} did not provide a valid playerName. Using default: ${playerName}`
-        );
-    }
-
-    console.log(`${playerName} joined! Session: ${client.sessionId}`);
-
-    const player = new Player();
-    player.name = playerName;
-    player.isReady = false;
-
-    // Initial spawn
-    player.x = 0;
-    player.y = 1;
-    player.z = 0;
-
-    this.state.players.set(client.sessionId, player);
-
-    // Send room info to client
-    client.send("roomInfo", {
-        roomId: this.state.roomId,
-        playerCount: this.state.players.size,
-    });
-
-    console.log(
-        `Players in room: ${this.state.players.size}/${this.maxClients}`
+  // Check if playerName exists and is valid
+  let playerName: string;
+  if (
+    options &&
+    typeof options.playerName === "string" &&
+    options.playerName.length > 0
+  ) {
+    playerName = options.playerName;
+  } else {
+    playerName = `Player${this.clients.length}`;
+    console.warn(
+      `Client ${client.sessionId} did not provide a valid playerName. Using default: ${playerName}`
     );
+  }
 
-    // Send waiting status to all clients
-    this.broadcast("lobbyUpdate", {
-        playerCount: this.state.players.size,
-        maxPlayers: this.maxClients,
-        message:
-            this.state.players.size < 4
-                ? `Waiting for ${4 - this.state.players.size} more player(s)...`
-                : "All players joined! Press READY to start",
+  console.log(`${playerName} joined! Session: ${client.sessionId}`);
+
+  const player = new Player();
+  player.name = playerName;
+  player.isReady = false;
+
+  // Initial spawn
+  player.x = 0;
+  player.y = 1;
+  player.z = 0;
+
+  this.state.players.set(client.sessionId, player);
+
+  // WAIT for next tick before sending messages
+  this.clock.setTimeout(() => {
+    client.send("roomInfo", {
+      roomId: this.state.roomId,
+      playerCount: this.state.players.size,
     });
+  }, 100);
+
+  console.log(`Players in room: ${this.state.players.size}/${this.maxClients}`);
+
+  // Send waiting status to all clients
+  this.broadcast("lobbyUpdate", {
+    playerCount: this.state.players.size,
+    maxPlayers: this.maxClients,
+    message:
+      this.state.players.size < 4
+        ? `Waiting for ${4 - this.state.players.size} more player(s)...`
+        : "All players joined! Press READY to start",
+  });
 }
 
 
