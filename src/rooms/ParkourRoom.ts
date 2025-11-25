@@ -27,28 +27,31 @@ export class ParkourRoomState extends Schema {
   @type("number") roundTime: number = 0;
 }
 
-// -------------------------
-// ParkourRoom
-// -------------------------
 export class ParkourRoom extends Room<ParkourRoomState> {
   maxClients = 4;
   private gameTimer: any = null;
 
   onCreate(options: any) {
-    console.log("ParkourRoom created");
+    console.log(
+      "🎮 ParkourRoom created with options:",
+      JSON.stringify(options)
+    );
     this.setState(new ParkourRoomState());
 
     // Always generate and set roomId
     this.state.roomId = this.generateRoomId();
     this.roomId = this.state.roomId;
-    console.log("Room Code:", this.state.roomId);
+    console.log("✅ Room Code:", this.state.roomId);
 
-    // -------------------------
     // Player movement updates
-    // -------------------------
     this.onMessage("playerMove", (client, message) => {
       const player = this.state.players.get(client.sessionId) as Player;
-      if (!player) return;
+      if (!player) {
+        console.warn(
+          `⚠️ playerMove: Player not found for session ${client.sessionId}`
+        );
+        return;
+      }
 
       player.x = message.x;
       player.y = message.y;
@@ -64,87 +67,107 @@ export class ParkourRoom extends Room<ParkourRoomState> {
       player.isGrounded = message.isGrounded ?? true;
     });
 
-    // -------------------------
     // Ready toggle
-    // -------------------------
     this.onMessage("toggleReady", (client) => {
       const player = this.state.players.get(client.sessionId) as Player;
-      if (!player) return;
+      if (!player) {
+        console.warn(
+          `⚠️ toggleReady: Player not found for session ${client.sessionId}`
+        );
+        return;
+      }
 
       player.isReady = !player.isReady;
       console.log(
-        `${player.name} is ${player.isReady ? "READY" : "NOT READY"}`
+        `${player.isReady ? "✅" : "⏳"} ${player.name} is ${
+          player.isReady ? "READY" : "NOT READY"
+        }`
       );
       this.checkAllPlayersReady();
     });
 
     this.onMessage("updateScore", (client, message) => {
       const player = this.state.players.get(client.sessionId) as Player;
-      if (!player) return;
+      if (!player) {
+        console.warn(
+          `⚠️ updateScore: Player not found for session ${client.sessionId}`
+        );
+        return;
+      }
 
       player.score = message.score;
-      console.log(`${player.name} score: ${player.score}`);
+      console.log(`🎯 ${player.name} score: ${player.score}`);
 
       this.broadcast("scoreUpdate", {
         playerName: player.name,
         score: player.score,
       });
     });
+
+    console.log("✅ All message handlers registered");
   }
 
-onJoin(client: Client, options: any) {
-  console.log(`Client ${client.sessionId} joining room...`);
-  console.log("Options received from client:", options);
+  onJoin(client: Client, options: any) {
+    console.log(`👤 Client ${client.sessionId} attempting to join...`);
+    console.log("📦 Options received:", JSON.stringify(options));
 
-  // Check if playerName exists and is valid
-  let playerName: string;
-  if (
-    options &&
-    typeof options.playerName === "string" &&
-    options.playerName.length > 0
-  ) {
-    playerName = options.playerName;
-  } else {
-    playerName = `Player${this.clients.length}`;
-    console.warn(
-      `Client ${client.sessionId} did not provide a valid playerName. Using default: ${playerName}`
-    );
+    try {
+      // Check if playerName exists and is valid
+      let playerName: string;
+      if (
+        options &&
+        typeof options.playerName === "string" &&
+        options.playerName.length > 0
+      ) {
+        playerName = options.playerName;
+      } else {
+        playerName = `Player${this.clients.length}`;
+        console.warn(
+          `⚠️ No valid playerName provided. Using default: ${playerName}`
+        );
+      }
+
+      console.log(`✅ ${playerName} joined! Session: ${client.sessionId}`);
+
+      const player = new Player();
+      player.name = playerName;
+      player.isReady = false;
+      player.x = 0;
+      player.y = 1;
+      player.z = 0;
+
+      this.state.players.set(client.sessionId, player);
+
+      // Send room info after a small delay to ensure state is synchronized
+      this.clock.setTimeout(() => {
+        try {
+          client.send("roomInfo", {
+            roomId: this.state.roomId,
+            playerCount: this.state.players.size,
+          });
+          console.log(`📤 Sent roomInfo to ${playerName}`);
+        } catch (error) {
+          console.error(`❌ Error sending roomInfo to ${playerName}:`, error);
+        }
+      }, 100);
+
+      console.log(
+        `👥 Players in room: ${this.state.players.size}/${this.maxClients}`
+      );
+
+      // Broadcast lobby update
+      this.broadcast("lobbyUpdate", {
+        playerCount: this.state.players.size,
+        maxPlayers: this.maxClients,
+        message:
+          this.state.players.size < 4
+            ? `Waiting for ${4 - this.state.players.size} more player(s)...`
+            : "All players joined! Press READY to start",
+      });
+    } catch (error) {
+      console.error(`❌ Error in onJoin for ${client.sessionId}:`, error);
+    }
   }
-
-  console.log(`${playerName} joined! Session: ${client.sessionId}`);
-
-  const player = new Player();
-  player.name = playerName;
-  player.isReady = false;
-
-  // Initial spawn
-  player.x = 0;
-  player.y = 1;
-  player.z = 0;
-
-  this.state.players.set(client.sessionId, player);
-
-  // WAIT for next tick before sending messages
-  this.clock.setTimeout(() => {
-    client.send("roomInfo", {
-      roomId: this.state.roomId,
-      playerCount: this.state.players.size,
-    });
-  }, 100);
-
-  console.log(`Players in room: ${this.state.players.size}/${this.maxClients}`);
-
-  // Send waiting status to all clients
-  this.broadcast("lobbyUpdate", {
-    playerCount: this.state.players.size,
-    maxPlayers: this.maxClients,
-    message:
-      this.state.players.size < 4
-        ? `Waiting for ${4 - this.state.players.size} more player(s)...`
-        : "All players joined! Press READY to start",
-  });
-}
-
 
   onLeave(client: Client, consented: boolean) {
     const player = this.state.players.get(client.sessionId) as
@@ -152,22 +175,25 @@ onJoin(client: Client, options: any) {
       | undefined;
     const playerName = player ? player.name : client.sessionId;
 
-    console.log(`${playerName} left`);
+    console.log(`👋 ${playerName} left (consented: ${consented})`);
     this.state.players.delete(client.sessionId);
-    console.log(`Players remaining: ${this.state.players.size}`);
+    console.log(`👥 Players remaining: ${this.state.players.size}`);
 
     if (this.state.players.size > 0 && !this.state.gameStarted) {
       this.checkAllPlayersReady();
     }
 
-    if (this.state.players.size === 0 && this.state.gameStarted) {
-      console.log("No players left, ending game");
-      this.endGame();
+    if (this.state.players.size === 0) {
+      if (this.state.gameStarted) {
+        console.log("🛑 No players left, ending game");
+        this.endGame();
+      }
+      console.log("🗑️ Room will dispose soon (no players)");
     }
   }
 
   onDispose() {
-    console.log("Room", this.roomId, "disposing");
+    console.log("🗑️ Room", this.roomId, "disposing");
 
     if (this.gameTimer) {
       this.gameTimer.clear();
@@ -179,7 +205,7 @@ onJoin(client: Client, options: any) {
     const minPlayers = 4;
     if (this.state.players.size < minPlayers) {
       console.log(
-        `Waiting for more players: ${this.state.players.size}/${minPlayers}`
+        `⏳ Waiting for more players: ${this.state.players.size}/${minPlayers}`
       );
       return;
     }
@@ -194,11 +220,11 @@ onJoin(client: Client, options: any) {
       else allReady = false;
     });
 
-    console.log(`Ready Status: ${readyCount}/${this.state.players.size}`);
+    console.log(`📊 Ready Status: ${readyCount}/${this.state.players.size}`);
 
     if (allReady) {
       console.log(
-        `All ${this.state.players.size} players ready! Starting game in 2 seconds...`
+        `🎉 All ${this.state.players.size} players ready! Starting game in 2 seconds...`
       );
 
       this.clock.setTimeout(() => {
@@ -211,14 +237,18 @@ onJoin(client: Client, options: any) {
     if (this.state.gameStarted) return;
 
     this.state.gameStarted = true;
-    this.state.roundTime = 180; // 3 minutes
+    this.state.roundTime = 180;
 
     this.broadcast("gameStarted", {
       message: "Game has started!",
       roundTime: this.state.roundTime,
     });
 
-    console.log("GAME STARTED! Round Time:", this.state.roundTime, "seconds");
+    console.log(
+      "🚀 GAME STARTED! Round Time:",
+      this.state.roundTime,
+      "seconds"
+    );
 
     this.gameTimer = this.clock.setInterval(() => {
       if (this.state.roundTime > 0) {
@@ -256,6 +286,8 @@ onJoin(client: Client, options: any) {
         winner = player;
       }
     });
+
+    console.log("🏁 Game ended!");
   }
 
   private generateRoomId(): string {

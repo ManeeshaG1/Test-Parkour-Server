@@ -30,10 +30,10 @@ gameServer.define("parkour_room", ParkourRoom);
 
 app.use("/colyseus", monitor());
 
+// Listen on all network interfaces for Railway
 httpServer.listen(port, "0.0.0.0", () => {
   console.log("=================================");
   console.log(`🚀 Server listening on port ${port}`);
-  console.log(`📡 WebSocket: ws://localhost:${port}`);
-  console.log(`🌐 Public: wss://test-parkour-server-production.up.railway.app`);
+  console.log(`📡 WebSocket: ws://0.0.0.0:${port}`);
   console.log("=================================");
 });
