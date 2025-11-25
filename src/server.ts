@@ -22,7 +22,6 @@ app.get("/", (req, res) => {
 
 const httpServer = createServer(app);
 
-// ✅ Colyseus 0.16 default transport (WebSocket) is used automatically
 const gameServer = new Server({
   server: httpServer,
   pingInterval: 6000,
