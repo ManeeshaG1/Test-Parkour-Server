@@ -38,11 +38,10 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     console.log("ParkourRoom created");
     this.setState(new ParkourRoomState());
 
-    if (options.create !== false) {
-      this.state.roomId = this.generateRoomId();
-      this.roomId = this.state.roomId;
-      console.log("Room Code:", this.state.roomId);
-    }
+    // Always generate and set roomId
+    this.state.roomId = this.generateRoomId();
+    this.roomId = this.state.roomId;
+    console.log("Room Code:", this.state.roomId);
 
     // -------------------------
     // Player movement updates
