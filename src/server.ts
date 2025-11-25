@@ -9,7 +9,12 @@ import { ParkourRoom } from "./rooms/ParkourRoom";
 const port = Number(process.env.PORT || 8080);
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {
