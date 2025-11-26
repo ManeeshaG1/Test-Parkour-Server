@@ -17,6 +17,8 @@ export class Player extends Schema {
   @type("string") name: string = "";
   @type("number") score: number = 0;
   @type("boolean") isReady: boolean = false;
+  @type("boolean") isRunning: boolean = false;
+  @type("boolean") isSliding: boolean = false;
 }
 
 export class ParkourRoomState extends Schema {
