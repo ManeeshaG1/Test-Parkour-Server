@@ -22,13 +22,13 @@ export class Player extends Schema {
 export class ParkourRoomState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
   @type("string") roomId: string = "";
-  @type("number") maxPlayers: number = 4;
+  @type("number") maxPlayers: number = 2;
   @type("boolean") gameStarted: boolean = false;
   @type("number") roundTime: number = 0;
 }
 
 export class ParkourRoom extends Room<ParkourRoomState> {
-  maxClients = 4;
+  maxClients = 2;
   private gameTimer: any = null;
 
   onCreate(options: any) {
@@ -158,8 +158,8 @@ export class ParkourRoom extends Room<ParkourRoomState> {
         playerCount: this.state.players.size,
         maxPlayers: this.maxClients,
         message:
-          this.state.players.size < 4
-            ? `Waiting for ${4 - this.state.players.size} more player(s)...`
+          this.state.players.size < 2
+            ? `Waiting for ${2 - this.state.players.size} more player(s)...`
             : "All players joined! Press READY to start",
       });
     } catch (error) {
@@ -200,7 +200,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   }
 
   private checkAllPlayersReady() {
-    const minPlayers = 4;
+    const minPlayers = 2;
     if (this.state.players.size < minPlayers) {
       console.log(
         `⏳ Waiting for more players: ${this.state.players.size}/${minPlayers}`
@@ -291,7 +291,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
   private generateRoomId(): string {
     const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     let code = "";
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 2; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
