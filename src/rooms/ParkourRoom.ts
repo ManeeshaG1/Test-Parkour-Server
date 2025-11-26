@@ -45,7 +45,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
     this.roomId = this.state.roomId;
     console.log("✅ Room Code:", this.state.roomId);
 
-    // Player movement updates
+    // Player movement updates - THIS IS THE CRITICAL FIX!
     this.onMessage("playerMove", (client, message) => {
       const player = this.state.players.get(client.sessionId) as Player;
       if (!player) {
@@ -55,6 +55,7 @@ export class ParkourRoom extends Room<ParkourRoomState> {
         return;
       }
 
+      // Position and rotation
       player.x = message.x;
       player.y = message.y;
       player.z = message.z;
@@ -62,11 +63,19 @@ export class ParkourRoom extends Room<ParkourRoomState> {
       player.rotY = message.rotY;
       player.rotZ = message.rotZ;
       player.rotW = message.rotW;
+
+      // Velocity
       player.velocityX = message.velocityX ?? 0;
       player.velocityY = message.velocityY ?? 0;
       player.velocityZ = message.velocityZ ?? 0;
-      player.currentAnimation = message.currentAnimation ?? "Idle";
+
+      // CRITICAL FIX: Update animation states!
+      player.isRunning = message.isRunning ?? false;
+      player.isSliding = message.isSliding ?? false;
       player.isGrounded = message.isGrounded ?? true;
+
+      // Update legacy animation field
+      player.currentAnimation = message.currentAnimation ?? "Idle";
     });
 
     // Ready toggle
@@ -136,6 +145,9 @@ export class ParkourRoom extends Room<ParkourRoomState> {
       player.x = 0;
       player.y = 1;
       player.z = 0;
+      player.isRunning = false;
+      player.isSliding = false;
+      player.isGrounded = true;
 
       this.state.players.set(client.sessionId, player);
 
